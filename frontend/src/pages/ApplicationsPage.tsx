@@ -6,6 +6,7 @@ import { Modal } from "../components/Modal";
 import { StatusSelect } from "../components/StatusSelect";
 import type { Application, ApplicationPage, CvVersion, Meta } from "../types";
 import { formatDate, formatSalary } from "../utils/format";
+import { isHttpUrl } from "../utils/url";
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -151,8 +152,8 @@ export function ApplicationsPage() {
               <tr key={app.id} className="border-t border-slate-100 dark:border-slate-800">
                 <td className="p-2">{app.company}</td>
                 <td className="p-2">
-                  {app.job_url ? (
-                    <a href={app.job_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline dark:text-indigo-400">
+                  {isHttpUrl(app.job_url) ? (
+                    <a href={app.job_url!} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline dark:text-indigo-400">
                       {app.role || "—"}
                     </a>
                   ) : (

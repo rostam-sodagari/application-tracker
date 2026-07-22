@@ -53,8 +53,14 @@ def _send_verification_email(user_id: str, email: str):
 
 def _check_rate_limit(client_ip: str):
     now = time.time()
-    attempts = _login_attempts[client_ip]
-    attempts[:] = [t for t in attempts if now - t < LOGIN_WINDOW_SECONDS]
+    attempts = [t for t in _login_attempts.get(client_ip, []) if now - t < LOGIN_WINDOW_SECONDS]
+    if attempts:
+        _login_attempts[client_ip] = attempts
+    else:
+        # Every login attempt reaches this function, including successful ones, so without this
+        # an entry would accumulate here permanently for every distinct client IP ever seen, even
+        # once its attempts have all expired out of the window.
+        _login_attempts.pop(client_ip, None)
     if len(attempts) >= MAX_LOGIN_ATTEMPTS:
         retry_after = int(LOGIN_WINDOW_SECONDS - (now - attempts[0]))
         raise HTTPException(status_code=429, detail=f"Too many login attempts. Try again in {retry_after}s.")
