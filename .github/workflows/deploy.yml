@@ -1,0 +1,53 @@
+name: Deploy tagged release to Appwrite
+
+# Pushes a new code deployment to an existing Appwrite Function on every version tag (v1.2.3),
+# then activates it. The Function itself, its runtime, and its build/start commands are created
+# once, manually, in the Appwrite console; see docs/SETUP.md. This workflow only ships new code
+# to it, the same way the rest of this project treats Appwrite project setup as a manual,
+# one-time step rather than something scripted here.
+#
+# Only meaningful for a deployment running in Appwrite mode: the Function's filesystem is not a
+# persistent volume, so local mode's SQLite file and CV storage would not survive a redeploy.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package backend and built frontend together
+        run: tar -czf deployment.tar.gz backend frontend/dist
+
+      - name: Push and activate the new deployment
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          APPWRITE_FUNCTION_ID: ${{ secrets.APPWRITE_FUNCTION_ID }}
+        run: |
+          curl -sf -X POST "${APPWRITE_ENDPOINT}/functions/${APPWRITE_FUNCTION_ID}/deployments" \
+            -H "X-Appwrite-Project: ${APPWRITE_PROJECT_ID}" \
+            -H "X-Appwrite-Key: ${APPWRITE_API_KEY}" \
+            -F "code=@deployment.tar.gz" \
+            -F "activate=true"

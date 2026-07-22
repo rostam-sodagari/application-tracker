@@ -1,5 +1,7 @@
 # Setup
 
+[README](../README.md) · Setup · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md)
+
 The backend supports two modes, chosen by the `BACKEND_MODE` environment variable: `local` (the
 default) and `appwrite`. Pick one before following the rest of this document. Both are described in
 full below; local mode is the simpler starting point if unsure.
@@ -184,3 +186,44 @@ continuously, not only during login, for the reasons described in docs/SECURITY.
 
 A reverse proxy that terminates TLS should sit in front of this backend in any real deployment. Caddy is
 a reasonable choice, since it provisions HTTPS automatically once a domain name points at it.
+
+Local mode's login rate limiting keys off the connecting client's IP address, as reported by Uvicorn.
+When the reverse proxy runs on the same host as this backend, Uvicorn's default already trusts it and
+this needs no further configuration. When the proxy runs elsewhere, for example a separate container on
+a Docker network, pass `--forwarded-allow-ips` to Uvicorn with the proxy's actual address, so it reads
+the real client IP from the `X-Forwarded-For` header the proxy sets rather than treating every request
+as coming from the proxy itself. Skipping this in that kind of deployment does not stop the application
+from working, but it does mean every visitor shares one rate-limiting bucket, so one person's failed
+login attempts could temporarily lock out everyone else's.
+
+### Deploying to Appwrite on a tagged release
+
+`.github/workflows/deploy.yml` pushes a new code deployment to an Appwrite Function on every version
+tag (`v1.2.3`) pushed to this repository, using Appwrite mode. This is only meaningful for Appwrite
+mode: a Function's filesystem is not a persistent volume, so local mode's SQLite file and CV storage
+would not survive a redeploy.
+
+The Function itself is created once, manually, in the Appwrite console, the same way the Appwrite
+project itself is set up above:
+
+1. Under Functions, create a function with the Python runtime.
+2. Set its build command to install this backend's dependencies, for example
+   `pip install -r backend/requirements.txt`, and its start command to run the server, for example
+   `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`, matching the archive layout the
+   workflow uploads (`backend/` and `frontend/dist/` as sibling directories at the deployment's root).
+3. Set the function's environment variables to the same `BACKEND_MODE=appwrite` values described
+   above, plus `LOCAL_SESSION_SECRET` only if local mode is ever toggled on for testing.
+4. Note the function's id, shown in the console.
+
+Then add the following as repository secrets, under Settings and then Secrets and variables, then
+Actions:
+
+| Secret | Purpose |
+|---|---|
+| APPWRITE_ENDPOINT | The same endpoint used elsewhere |
+| APPWRITE_PROJECT_ID | The same project id used elsewhere |
+| APPWRITE_API_KEY | A key with the functions.write scope, used only by this workflow |
+| APPWRITE_FUNCTION_ID | The function id from step four above |
+
+Pushing a tag, for example `git tag v1.0.0 && git push origin v1.0.0`, builds the frontend, packages it
+with the backend, and activates the result as the function's new deployment.
