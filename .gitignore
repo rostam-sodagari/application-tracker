@@ -1,0 +1,14 @@
+# Backend (Python)
+backend/venv/
+backend/.venv/
+backend/.env
+__pycache__/
+*.pyc
+
+# Local mode's runtime data: the SQLite database and uploaded CV files. Never source, and may
+# contain a real user's application history and documents.
+backend/data/
+
+# Frontend (Node) — frontend/.gitignore covers build/editor artifacts; these are secrets only.
+frontend/.env
+frontend/.env.local

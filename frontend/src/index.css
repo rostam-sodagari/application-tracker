@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* Dark mode is toggled by a `dark` class on <html> (see ThemeContext), rather than following
+   the operating system automatically. The inline script in index.html applies the stored or
+   system-default theme before the first paint, so there is no flash of the wrong theme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
