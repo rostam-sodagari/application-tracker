@@ -81,6 +81,11 @@ up a database yourself.
 
    Unlike the project ID and endpoint, this key is a secret. It authorizes full read and write access to
    the application's data and should never be committed to version control or shared.
+
+   If this key will also be used by the tagged-release deploy workflow described below, add
+   `functions.read` and `functions.write` to it as well; pushing a new code deployment to a Function is
+   a separate permission from reading and writing application data, even once the Function itself
+   already exists.
 5. For production use, configure a custom SMTP provider under Messaging, rather than relying on Appwrite
    Cloud's own default sender for verification email, which is rate-limited.
 
@@ -222,8 +227,10 @@ Actions:
 |---|---|
 | APPWRITE_ENDPOINT | The same endpoint used elsewhere |
 | APPWRITE_PROJECT_ID | The same project id used elsewhere |
-| APPWRITE_API_KEY | A key with the functions.write scope, used only by this workflow |
+| APPWRITE_API_KEY | A key with `functions.read` and `functions.write` scope. Can be the same key used for application data, with those two scopes added, or a separate key dedicated to deployment |
 | APPWRITE_FUNCTION_ID | The function id from step four above |
 
 Pushing a tag, for example `git tag v1.0.0 && git push origin v1.0.0`, builds the frontend, packages it
-with the backend, and activates the result as the function's new deployment.
+with the backend, and activates the result as the function's new deployment. A deployment rejected with
+a `missing scopes` error almost always means the key behind `APPWRITE_API_KEY` does not have
+`functions.write` yet.

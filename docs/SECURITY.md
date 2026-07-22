@@ -75,8 +75,11 @@ settings rather than the first account's.
 ## Data access (Appwrite mode)
 
 - **All application data is reached only through a single admin-scoped Appwrite API key**, held in
-  `backend/.env` as `APPWRITE_API_KEY` and used exclusively by `backend/app/stores/appwrite_store.py`.
-  This key is a genuine secret and must never be committed, logged, or exposed to the browser.
+  `backend/.env` as `APPWRITE_API_KEY` and used by `backend/app/stores/appwrite_store.py`. The same
+  key, or a separate one, is also used by the tagged-release deploy workflow (`APPWRITE_API_KEY` as a
+  GitHub repository secret) with `functions.write` added, to push new code to the Appwrite Function; see
+  docs/SETUP.md. This key is a genuine secret and must never be committed, logged, or exposed to the
+  browser.
 - **The browser never holds Appwrite data-plane credentials.** It only ever calls this backend's own
   `/api/*` routes; Appwrite's TablesDB and Storage APIs are not reachable from client-side code at all.
 - **CV and cover-letter downloads** (`GET /cvs/open/{file_id}`) proxy the file through this backend
