@@ -1,46 +1,102 @@
+<div align="center">
+
 # Application Tracker
 
-A job application tracker for one or more accounts. It records each application, keeps the CV and
-cover letter sent for it, tracks status through to an offer, and keeps every tailored CV in one place.
+A self-hostable job application tracker for one or more accounts. Track every application from
+draft to offer, attach the CV and cover letter you sent, and see your progress at a glance.
 
-The backend is written in FastAPI. The frontend is a React application built with Vite, TypeScript,
-and Tailwind CSS. The backend supports two interchangeable storage and authentication modes, chosen by
-a single environment variable:
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Node](https://img.shields.io/badge/node-18%2B-green)
+![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)
+![React](https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-61DAFB)
+![Tailwind CSS](https://img.shields.io/badge/style-Tailwind%20CSS-38BDF8)
+![License](https://img.shields.io/badge/license-MIT-informational)
 
-- **Local mode**, the default, needs no external account. Data is stored in a SQLite file and CV files
-  on local disk, both under `backend/data`. Accounts are created directly against this backend.
-- **Appwrite mode** stores data and accounts in an Appwrite Cloud project instead, for anyone who wants
-  managed hosting rather than a local file. The browser never communicates with Appwrite's data
-  services directly, only with this backend's own API; Appwrite is used for its database, storage, and
-  account services.
+**[Live demo](https://tracker.rostamsodagari.tech)**
 
-Every account, in either mode, only ever sees its own applications, CVs, and settings. The application
-does not submit anything on a user's behalf. It reads and writes only its own data.
+</div>
 
-## Documentation
+## Why this exists
 
-- [docs/SETUP.md](docs/SETUP.md) describes both setup paths, the environment variables each one reads,
-  and how to run and deploy the application.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the two backend modes fit together and the
-  reasoning behind the design.
-- [docs/SECURITY.md](docs/SECURITY.md) describes the authentication, multi-user data isolation, and
-  email verification model in detail.
+Spreadsheets don't tell you your response rate. Job boards don't remember which CV you sent
+where. This is a small, focused tool that does exactly one job well: keep track of every
+application you've sent, what you sent it with, and what happened next.
 
-## Quick start (local mode)
+It runs two ways, chosen by a single setting:
 
-The prerequisites are Python 3.11 or later and Node 18 or later. No external account is required.
+- **Local mode** (default) — a SQLite file on your own machine, no external account, no signup
+  anywhere else. Works the moment you clone the repo.
+- **Appwrite mode** — plug in an Appwrite Cloud project for managed hosting and multi-device
+  access, with open self-registration for more than one person to use it.
 
-```
+Every account only ever sees its own data. Nothing is submitted or shared automatically — you stay
+in control of every application.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/images/home.png" width="420" alt="Home page showing weekly progress, response/interview/offer rates, and a status funnel">
+      <br><sub><b>Home — weekly progress, rates, and status funnel</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/images/applications.png" width="420" alt="Applications page with search, status filter, and a paginated table">
+      <br><sub><b>Applications — search, filter, and pagination</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/images/cvs.png" width="420" alt="CV library page listing uploaded CVs and cover letters">
+      <br><sub><b>CV library — every version in one place</b></sub>
+    </td>
+    <td align="center">
+      <img src="docs/images/settings.png" width="420" alt="Settings page for the configurable weekly application goal">
+      <br><sub><b>Settings — your own weekly goal</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="docs/images/login.png" width="420" alt="Login screen with a light and dark mode toggle">
+      <br><sub><b>Sign in — light and dark mode, either way</b></sub>
+    </td>
+  </tr>
+</table>
+
+## Highlights
+
+- **Full application lifecycle** — company, role, source, posting URL, location, remote type,
+  salary range, status (Draft Ready through Offer/Rejected/Withdrawn), follow-up date, and notes.
+- **Upload while you create** — attach a CV and cover letter directly from the add/edit form; every
+  upload is also kept on the CV library page, taggable by company.
+- **Search, filter, and paginate** — find any application by company or role, filter by status,
+  browse pages of twenty at a time.
+- **Real statistics, not vibes** — response rate, interview rate, and offer rate, each computed
+  against applications actually sent, plus a configurable weekly goal with a progress bar.
+- **Two backends, one codebase** — local SQLite or Appwrite Cloud, selected by one environment
+  variable; every route, page, and test is written against the same internal contract regardless
+  of which is active.
+- **Multi-user from the ground up** — open registration, per-account data isolation verified by an
+  automated test suite in both backends, and optional email verification (Appwrite's own flow, or a
+  configurable SMTP sender in local mode).
+- **A real interface** — coloured status badges, stat tiles, and a user-controlled light/dark
+  toggle that remembers your choice, not just whatever your OS prefers.
+
+## Quick start
+
+Requires Python 3.11+ and Node 18+. No external account needed for local mode.
+
+```bash
 cd backend
 python -m venv venv
-venv\Scripts\pip install -r requirements.txt
-copy .env.example .env
+venv\Scripts\pip install -r requirements.txt      # macOS/Linux: source venv/bin/activate && pip install -r requirements.txt
+copy .env.example .env                            # macOS/Linux: cp .env.example .env
 ```
 
-Edit `backend/.env` and set `LOCAL_SESSION_SECRET` to a random value, for example the output of
+Open `backend/.env` and set `LOCAL_SESSION_SECRET` to a random value, for example the output of
 `python -c "import secrets; print(secrets.token_hex(32))"`.
 
-```
+```bash
 cd ../frontend
 npm install
 npm run build
@@ -49,34 +105,24 @@ cd ../backend
 venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Open `http://127.0.0.1:8000`, register an account, and sign in. Setting up Appwrite mode instead, and
-running the two together during frontend development, are both described in
-[docs/SETUP.md](docs/SETUP.md).
+Open `http://127.0.0.1:8000`, register an account, and start tracking. Setting up Appwrite mode
+instead, running the frontend and backend as two separate dev processes, and deploying, are all
+covered in [docs/SETUP.md](docs/SETUP.md).
 
-## Project layout
+## Documentation
 
-The `backend` directory contains the FastAPI application. `app/stores` holds the local and Appwrite
-storage implementations, `app/auth_providers` holds the local and Appwrite authentication
-implementations, and `app/db.py`/`app/auth.py` are the thin dispatchers that select between them based
-on `BACKEND_MODE`. The `frontend` directory contains the React application, which is built once and
-then served by the backend. The `docs` directory contains the setup, architecture, and security
-documentation.
+| Guide | What's in it |
+|---|---|
+| [docs/SETUP.md](docs/SETUP.md) | Both setup paths, every environment variable, running locally, and deploying |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the two backend modes fit together and why |
+| [docs/SECURITY.md](docs/SECURITY.md) | Authentication, multi-user data isolation, and email verification in detail |
 
-## Features
+## Tech stack
 
-Applications can be added, edited, and deleted, with company, role, source, posting URL, location,
-remote type, salary range, a status, a follow-up date, and free-text notes. Status moves through Draft
-Ready, Applied, Screening, Interview, Final Round, and then Offer, Rejected, or Withdrawn. A CV and
-cover letter can be attached while creating or editing an application, uploading them in the same step;
-every uploaded file is also kept on the CVs page, where it can be tagged with the company it was
-tailored for and deleted, which also removes the underlying file from storage.
+FastAPI, SQLite, and the Appwrite Python SDK on the backend; React, Vite, TypeScript, and Tailwind
+CSS on the frontend; pytest and Vitest for the test suite; GitHub Actions for CI and tagged
+releases.
 
-The Applications page supports keyword search, a status filter, and pagination. The home page shows
-applications sent in the current week against a configurable weekly goal, response, interview, and
-offer rates, a breakdown by status, and follow-ups that are due. The Settings page controls the weekly
-goal. The interface supports both light and dark mode, toggled independently of the operating system's
-own preference and remembered between visits.
+## License
 
-Newly registered accounts are asked to verify their email address: through Appwrite's own verification
-email in Appwrite mode, or through a configurable SMTP provider in local mode. An account remains usable
-before verifying; a banner is shown as a reminder until it is confirmed.
+[MIT](LICENSE)

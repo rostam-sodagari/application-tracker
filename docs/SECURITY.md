@@ -1,5 +1,7 @@
 # Security model
 
+[README](../README.md) · [Setup](SETUP.md) · [Architecture](ARCHITECTURE.md) · Security
+
 ## Authentication
 
 ### Local mode

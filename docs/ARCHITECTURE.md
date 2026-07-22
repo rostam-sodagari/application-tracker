@@ -1,5 +1,7 @@
 # Architecture
 
+[README](../README.md) · [Setup](SETUP.md) · Architecture · [Security](SECURITY.md)
+
 ## Overview
 
 The backend exposes one API, under `/api`, regardless of which mode it is running in. Every other part
@@ -7,6 +9,27 @@ of the system, meaning the frontend, the routers, and the home statistics, is wr
 and against a small set of internal Python functions, never against Appwrite directly. Which mode is
 active is chosen by a single environment variable, `BACKEND_MODE`, read once at startup in
 `backend/app/config.py`.
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React SPA"]
+    Backend["FastAPI backend<br/>/api routes"]
+    LocalDB[("SQLite<br/>backend/data/app.db")]
+    LocalDisk[("Local disk<br/>CV storage")]
+    AppwriteAuth["Appwrite<br/>Account service"]
+    AppwriteData[("Appwrite<br/>TablesDB + Storage")]
+
+    Browser -->|"bearer token,<br/>all application data"| Backend
+    Backend -->|"local mode"| LocalDB
+    Backend -->|"local mode"| LocalDisk
+    Backend -->|"appwrite mode,<br/>admin API key"| AppwriteData
+    Backend -->|"appwrite mode,<br/>verify token"| AppwriteAuth
+    Browser -.->|"login / register,<br/>appwrite mode only"| AppwriteAuth
+```
+
+The browser never talks to Appwrite's data services directly, in either mode; the one exception is
+Appwrite mode's login and registration, which the browser performs directly against Appwrite's own
+account service, shown as a dashed line above, since that is Appwrite's job, not this backend's.
 
 ### Local mode
 
@@ -29,6 +52,24 @@ access to the API key and no way to reach Appwrite's database or storage service
 re-exports the matching implementation's functions under the same names, so that a router, or the home
 statistics endpoint, can call `db.add_application(...)` or depend on `auth.require_auth` without knowing
 or caring which mode is active.
+
+```mermaid
+flowchart LR
+    Router["A router,<br/>e.g. applications.py"]
+    DbPy{{"db.py"}}
+    AuthPy{{"auth.py"}}
+    LocalStore["stores/local_store.py"]
+    AppwriteStore["stores/appwrite_store.py"]
+    LocalAuth["auth_providers/local_auth.py"]
+    AppwriteAuth["auth_providers/appwrite_auth.py"]
+
+    Router --> DbPy
+    Router --> AuthPy
+    DbPy -->|"BACKEND_MODE=local"| LocalStore
+    DbPy -->|"BACKEND_MODE=appwrite"| AppwriteStore
+    AuthPy -->|"BACKEND_MODE=local"| LocalAuth
+    AuthPy -->|"BACKEND_MODE=appwrite"| AppwriteAuth
+```
 
 The two storage implementations, `backend/app/stores/local_store.py` and
 `backend/app/stores/appwrite_store.py`, expose an identical set of function names and arguments: every
@@ -128,6 +169,19 @@ is resolved by matching in application code rather than enforced as a database-l
 neither SQLite as used here nor Appwrite's database provides a cross-table foreign key for this case.
 
 ## Example: loading the Applications page
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Backend as FastAPI backend
+    participant Store as db.py dispatcher
+
+    Browser->>Backend: GET /api/applications?status=...&keyword=...<br/>Authorization: Bearer token
+    Backend->>Backend: require_auth resolves the token to a user id
+    Backend->>Store: search_applications(user_id, status, keyword, limit, offset)
+    Store-->>Backend: items and total count, scoped to that user id
+    Backend-->>Browser: 200 OK, JSON
+```
 
 The browser holds a session token, obtained at login or registration and attached to every request by
 `api/client.ts`. When the Applications page loads, it requests a page of applications, optionally
